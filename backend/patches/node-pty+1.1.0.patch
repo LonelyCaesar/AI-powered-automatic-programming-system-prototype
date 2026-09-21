@@ -1,0 +1,42 @@
+diff --git a/node_modules/node-pty/lib/windowsPtyAgent.js b/node_modules/node-pty/lib/windowsPtyAgent.js
+index a358ffb..df0816e 100644
+--- a/node_modules/node-pty/lib/windowsPtyAgent.js
++++ b/node_modules/node-pty/lib/windowsPtyAgent.js
+@@ -138,14 +138,19 @@ var WindowsPtyAgent = /** @class */ (function () {
+                 this._inSocket.readable = false;
+                 this._outSocket.readable = false;
+                 this._getConsoleProcessList().then(function (consoleProcessList) {
+-                    consoleProcessList.forEach(function (pid) {
+-                        try {
+-                            process.kill(pid);
+-                        }
+-                        catch (e) {
+-                            // Ignore if process cannot be found (kill ESRCH error)
+-                        }
+-                    });
++                    if (consoleProcessList) {
++                        consoleProcessList.forEach(function (pid) {
++                            if (pid === process.pid || pid === process.ppid) {
++                                return;
++                            }
++                            try {
++                                process.kill(pid);
++                            }
++                            catch (e) {
++                                // Ignore if process cannot be found (kill ESRCH error)
++                            }
++                        });
++                    }
+                 });
+                 this._ptyNative.kill(this._pty, this._useConptyDll);
+                 this._conoutSocketWorker.dispose();
+@@ -169,6 +174,9 @@ var WindowsPtyAgent = /** @class */ (function () {
+             var processList = this._ptyNative.getProcessList(this._pid);
+             this._ptyNative.kill(this._pid, this._innerPid);
+             processList.forEach(function (pid) {
++                if (pid === process.pid || pid === process.ppid) {
++                    return;
++                }
+                 try {
+                     process.kill(pid);
+                 }

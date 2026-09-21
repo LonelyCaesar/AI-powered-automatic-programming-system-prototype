@@ -1,0 +1,13 @@
+{
+  "ollamaBaseUrl": "http://192.168.1.11:11434",
+  "ollamaModel": "gemma4:26b",
+  "modelSource": "local_ollama",
+  "modelRoutingMode": "local_first",
+  "cloudApiEnabled": false,
+  "cloudApiProvider": "OpenAI / Azure OpenAI API",
+  "cloudApiBaseUrl": "https://api.openai.com/v1",
+  "cloudApiKey": "",
+  "cloudModel": "gpt-4.1-mini",
+  "requireCloudApproval": true,
+  "updatedAt": "2026-09-21T01:06:33"
+}

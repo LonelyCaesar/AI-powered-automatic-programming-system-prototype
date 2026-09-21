@@ -1,0 +1,39 @@
+{
+  "name": "cubi-code-backend-node",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cubi Code AI Coding Assistant backend migrated from Python FastAPI to Node.js Express API.",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "init-db": "node scripts/init-db.js",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check src/server.js",
+    "postinstall": "patch-package"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.0",
+    "http-proxy": "^1.18.1",
+    "node-pty": "^1.0.0",
+    "pg": "^8.22.0",
+    "pgvector": "^0.3.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "patch-package": "^8.0.1",
+    "prettier": "^3.9.4"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: cubi-code-postgres
+    environment:
+      POSTGRES_DB: cubi_postgres
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - cubi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d cubi_postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  cubi_postgres_data:

@@ -71,3 +71,12 @@ test('test tab running copy follows the shared AI execution loading state', () =
   assert.match(source, /正在執行 \/ 開啟，請稍候\.\.\./)
   assert.doesNotMatch(source, /testLoading: Boolean/)
 })
+
+test('agent flow without a test result is not presented as a test run', () => {
+  assert.match(source, /const hasAgentFlowWithoutResult = computed\(\(\) => !props\.testResult && Boolean\(displayAgentSteps\.value\.length\)\)/)
+  assert.match(source, /v-else-if="hasAgentFlowWithoutResult">AI 流程尚未產生可套用結果，未執行沙盒測試/)
+  assert.match(source, /!testResult \? 'AI 流程狀態'/)
+  assert.match(source, /<div v-if="testResult" class="test-command-grid">/)
+  assert.match(source, /<div v-if="testResult" class="metric-grid">/)
+  assert.match(source, /AI 修改流程沒有產生可套用差異，因此尚未進入沙盒測試/)
+})

@@ -105,6 +105,7 @@
       <div v-else-if="activeTab === 'test'" class="test-panel">
         <div class="success-banner" :class="{ danger: testResult && !testResult.ok, neutral: !testResult && !resultLoading, running: resultLoading }">
           <span v-if="resultLoading" class="result-running"><i></i>正在執行 / 開啟，請稍候...</span>
+          <span v-else-if="hasAgentFlowWithoutResult">AI 流程尚未產生可套用結果，未執行沙盒測試</span>
           <span v-else-if="!testResult">尚未執行 AI 檢查或測試</span>
           <span v-else-if="isCreateFilesResult && testResult.ok">✅ 檔案處理完成！（本次新增 {{ testResult.createdCount ?? testUi.passed }} 個）</span>
           <span v-else-if="isInteractiveAppResult && testResult.ok">✅ 已辨識 {{ interactiveAppLabel }}，正在本網頁終端機自動執行</span>
@@ -139,7 +140,7 @@
 
         <div v-if="showAgentFlow" class="agent-flow-card test-flow-card">
           <div class="agent-flow-head">
-            <b>{{ testResult?.ok ? '實際執行證據' : '實際失敗證據' }}</b>
+            <b>{{ !testResult ? 'AI 流程狀態' : testResult.ok ? '實際執行證據' : '實際失敗證據' }}</b>
             <span>{{ executionEvidenceLabel }}</span>
           </div>
           <div class="agent-flow-steps">
@@ -168,7 +169,7 @@
           </div>
         </div>
 
-        <div class="test-command-grid">
+        <div v-if="testResult" class="test-command-grid">
           <div class="command-card">
             <div class="muted">{{ isCreateFilesResult ? '執行動作' : isTerminalHintResult || isAppLaunchResult ? '執行 / 開啟指令' : '測試指令' }}</div>
             <code>{{ testUi.command }}</code>
@@ -180,7 +181,7 @@
           </div>
         </div>
 
-        <div class="metric-grid">
+        <div v-if="testResult" class="metric-grid">
           <div class="metric-card"><div class="muted">{{ isCreateFilesResult ? '檔案數' : isTerminalHintResult || isAppLaunchResult ? '執行數' : '測試數' }}</div><strong>{{ testUi.total }}</strong></div>
           <div class="metric-card metric-ok"><div class="muted">{{ isCreateFilesResult ? '本次新增' : isTerminalHintResult ? '已送出' : isAppLaunchResult ? '已開啟' : '通過' }}</div><strong>{{ testUi.passed }}</strong></div>
           <div class="metric-card metric-fail"><div class="muted">失敗</div><strong>{{ testUi.failed }}</strong></div>
@@ -209,6 +210,7 @@
             <li>{{ resultScopeNotice }}</li>
           </ul>
           <div v-if="testResult?.agentMessage" class="empty-small">{{ testResult.agentMessage }}</div>
+          <div v-else-if="hasAgentFlowWithoutResult" class="empty-small">AI 修改流程沒有產生可套用差異，因此尚未進入沙盒測試；請依右側訊息或目前檔案內容調整後再執行。</div>
           <div v-else-if="!testResult" class="empty-small">按右上「在 AI 沙盒執行」，系統會依目前檔案與專案設定選擇語法檢查、測試或啟動方式，並在此顯示指令、結果及錯誤。</div>
         </div>
 
@@ -365,6 +367,7 @@ const displayAgentSteps = computed(() => {
   if (props.testResult?.steps?.length) return props.testResult.steps
   return []
 })
+const hasAgentFlowWithoutResult = computed(() => !props.testResult && Boolean(displayAgentSteps.value.length))
 const isCreateFilesResult = computed(() => props.testResult?.type === 'agent_create_files')
 const isMultiFileResult = computed(() => props.testResult?.testKind === 'multi_file')
 const isFrontendStaticResult = computed(() => props.testResult?.testKind === 'frontend_static')
@@ -443,7 +446,7 @@ const executionKindLabel = computed(() => {
 })
 
 const executionEvidenceLabel = computed(() => {
-  if (!props.testResult) return '尚無執行結果'
+  if (!props.testResult) return hasAgentFlowWithoutResult.value ? '尚未進入測試階段' : '尚無執行結果'
   const exitCode = props.testResult.exitCode ?? props.testResult.returncode
   const result = props.testResult.ok ? '通過' : '失敗'
   return `${result}｜退出碼 ${exitCode ?? '未提供'}｜通過 ${testUi.value.passed}｜失敗 ${testUi.value.failed}`

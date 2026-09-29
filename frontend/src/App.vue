@@ -2507,6 +2507,20 @@ async function openResultTab(tabName) {
   activeWorkbenchTab.value = tabName
 }
 
+function shouldKeepCurrentPageForTestResult(result = {}) {
+  return Boolean(result && result.ok !== true && testFailureRepairBlockReason(result))
+}
+
+function openTestResultTabUnlessEnvironmentBlocked(result = testResult.value, fallbackTab = 'editor') {
+  if (shouldKeepCurrentPageForTestResult(result)) {
+    const nextTab = fallbackTab && fallbackTab !== 'test' ? fallbackTab : 'editor'
+    if (activeWorkbenchTab.value !== nextTab) openResultTab(nextTab)
+    return false
+  }
+  openResultTab('test')
+  return true
+}
+
 function inferLanguageId(path = '') {
   const p = String(path || '').toLowerCase()
   if (p.endsWith('.py')) return 'python'
@@ -4558,7 +4572,7 @@ async function applyDiff(options = {}) {
               { label: '2 執行驗證', status: 'done', detail: 'Docker 沙盒環境限制，停止重複自動修正' },
               { label: '3 保留修改', status: 'done', detail: '未 rollback；請在可連網或具備依賴的環境重測完整 runtime' },
             ]
-            openResultTab('test')
+            openTestResultTabUnlessEnvironmentBlocked(testResult.value, 'editor')
             chatMessages.value.push({
               role: 'assistant',
               content: `已套用修改，但完整驗證受環境限制，系統不會繼續重複自動修正。\n${blockReason}`,
@@ -4804,7 +4818,7 @@ async function applyDiff(options = {}) {
       pendingExtraFiles.value = []
       pendingAgentApproval.value = false
 
-      openResultTab('test')
+      openTestResultTabUnlessEnvironmentBlocked(testResult.value, 'editor')
 
       chatMessages.value.push({
         role: 'assistant',
@@ -4883,8 +4897,8 @@ async function cancelDiff() {
 
 async function runTests() {
   if (!(await ensureActiveFileForTask('執行測試'))) return
+  const previousWorkbenchTab = activeWorkbenchTab.value
   loading.result = true
-  openResultTab('test')
   try {
     // The Test action follows the file selected in Explorer/Monaco. Other
     // workspace files are still staged as read-only test context below, but
@@ -4923,10 +4937,13 @@ async function runTests() {
       failed,
       total,
       exitCode: data.test?.exitCode ?? null,
+      returncode: data.test?.returncode ?? data.test?.exitCode ?? null,
       elapsed: data.test?.elapsed_seconds ?? 0,
       stdout,
       stderr,
       sandbox: data.test?.sandbox || data.sandbox || null,
+      environmentBlocked: data.environment_blocked === true || data.test?.environment_blocked === true,
+      validationLimited: data.validation_limited === true || data.test?.validation_limited === true,
       targetFile: data.test?.target_file || primaryFile,
       filePath: primaryFile,
       targetFiles,
@@ -4942,8 +4959,14 @@ async function runTests() {
       { label: '3 執行 command', status: testResult.value.ok ? 'done' : 'failed', detail: testResult.value.command },
       { label: '4 顯示結果', status: testResult.value.ok ? 'done' : 'failed', detail: `通過 ${passed}，失敗 ${failed}` }
     ]
-    openResultTab('test')
-    chatMessages.value.push({ role: 'assistant', content: data.content || `系統已完成測試：通過 ${passed}，失敗 ${failed}。` })
+    const blockReason = testFailureRepairBlockReason(testResult.value)
+    openTestResultTabUnlessEnvironmentBlocked(testResult.value, previousWorkbenchTab)
+    chatMessages.value.push({
+      role: 'assistant',
+      content: blockReason
+        ? `${data.content || `系統已完成測試：通過 ${passed}，失敗 ${failed}。`}\n\n${blockReason}\n\n已保留在目前頁面；需要原始 stdout / stderr 時，可手動開啟「測試 / AI 執行結果」。`
+        : data.content || `系統已完成測試：通過 ${passed}，失敗 ${failed}。`
+    })
   } catch (err) {
     testResult.value = null
     addAssistantError(`執行測試失敗：${err.message}`)
@@ -5698,7 +5721,7 @@ async function runInlineCommand(payload = {}) {
       })
       if (payload.testFailureFix) {
         if (testResult.value) testResult.value.autoFixStopped = true
-        openResultTab('test')
+        openResultTab(testResult.value ? 'test' : 'editor')
       }
       return
     }
@@ -5803,7 +5826,7 @@ async function runInlineCommand(payload = {}) {
             { label: '4 停止自動回修', status: 'done', detail: '避免重複修改同一批檔案' },
           ]
           chatMessages.value.push({ role: 'assistant', content: message })
-          openResultTab('test')
+          openTestResultTabUnlessEnvironmentBlocked(testResult.value, 'editor')
           return
         }
       }

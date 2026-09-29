@@ -80,6 +80,20 @@ test('AI execution result panel keeps the original shared loading behavior', () 
   assert.doesNotMatch(source, /loading\.test/)
 })
 
+test('environment-blocked test failures do not force-open the result tab', () => {
+  assert.match(source, /function shouldKeepCurrentPageForTestResult\(result = \{\}\) \{[\s\S]*testFailureRepairBlockReason\(result\)/)
+  assert.match(source, /function openTestResultTabUnlessEnvironmentBlocked\(result = testResult\.value, fallbackTab = 'editor'\)/)
+  assert.match(source, /const previousWorkbenchTab = activeWorkbenchTab\.value\s+loading\.result = true\s+try \{/)
+  assert.doesNotMatch(source, /async function runTests\(\) \{[\s\S]{0,180}openResultTab\('test'\)/)
+  assert.match(source, /environmentBlocked: data\.environment_blocked === true \|\| data\.test\?\.environment_blocked === true/)
+  assert.match(source, /openTestResultTabUnlessEnvironmentBlocked\(testResult\.value, previousWorkbenchTab\)/)
+  assert.match(source, /需要原始 stdout \/ stderr 時，可手動開啟「測試 \/ AI 執行結果」/)
+})
+
+test('auto repair without a retained failed result returns to the editor', () => {
+  assert.match(source, /if \(payload\.testFailureFix\) \{\s+if \(testResult\.value\) testResult\.value\.autoFixStopped = true\s+openResultTab\(testResult\.value \? 'test' : 'editor'\)/)
+})
+
 test('sandbox project id is stable so dependency caches can be reused', () => {
   const createId = source.match(/function createSandboxProjectId[\s\S]*?\n\}/)?.[0] || ''
   assert.match(createId, /return `\$\{source\}-\$\{slug\}`/)
